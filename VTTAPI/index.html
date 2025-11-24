@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <title>Giao Diện Nâng Cao - VTTAPI</title>
+</head>
+<body>
+    <h2>Danh Sách Sản Phẩm</h2>
+    <ul id="productList"></ul>
+
+    <h3>Cập nhật Giá Sản phẩm (ID=1)</h3>
+    <input type="number" id="newPrice" placeholder="Nhập giá mới">
+    <button onclick="updateProduct(1)">Cập nhật</button>
+    <p id="message"></p>
+
+    <script>
+        const API_URL = 'https://localhost:7127/api/Products';
+
+        // 1. Lấy dữ liệu nâng cao: Xử lý CORS và JSON
+        async function fetchProducts() {
+            try {
+                const response = await fetch(API_URL);
+                const products = await response.json();
+                const list = document.getElementById('productList');
+                list.innerHTML = products.map(p => `<li>${p.name} - $${p.price}</li>`).join('');
+            } catch (error) {
+                console.error('Lỗi khi tải sản phẩm:', error);
+                document.getElementById('productList').innerHTML = '<li>Lỗi kết nối API. Hãy kiểm tra CORS và cổng.</li>';
+            }
+        }
+
+        // 2. Gửi dữ liệu nâng cao: Xử lý PUT và Validation
+        async function updateProduct(id) {
+            const newPrice = document.getElementById('newPrice').value;
+            const messageEl = document.getElementById('message');
+
+            // Giả định chúng ta chỉ gửi trường Price và Name (cần phải lấy Name hiện tại trước)
+            const productData = {
+                id: id,
+                name: "Tên sản phẩm giữ nguyên", // Cần gửi Name vì nó có [Required]
+                price: parseFloat(newPrice)
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(productData)
+                });
+
+                if (response.ok) { // 2xx status code
+                    messageEl.style.color = 'green';
+                    messageEl.textContent = 'Cập nhật thành công!';
+                    fetchProducts(); // Tải lại danh sách
+                } else if (response.status === 400) { // 400 Bad Request (Lỗi Validation)
+                    const errorDetails = await response.json();
+                    let errorMessage = 'Lỗi Validation: ';
+                    // Trích xuất lỗi từ phản hồi 400 của ASP.NET Core
+                    if (errorDetails.errors && errorDetails.errors.Price) {
+                         errorMessage += errorDetails.errors.Price[0];
+                    } else {
+                         errorMessage += 'Dữ liệu không hợp lệ.';
+                    }
+                    messageEl.style.color = 'red';
+                    messageEl.textContent = errorMessage;
+                } else { // Các lỗi khác (404, 401, 500)
+                    messageEl.style.color = 'red';
+                    messageEl.textContent = `Lỗi Server: ${response.status} ${response.statusText}`;
+                }
+            } catch (error) {
+                messageEl.style.color = 'red';
+                messageEl.textContent = 'Lỗi mạng hoặc kết nối.';
+                console.error('Lỗi mạng:', error);
+            }
+        }
+
+        fetchProducts();
+    </script>
+</body>
+</html>

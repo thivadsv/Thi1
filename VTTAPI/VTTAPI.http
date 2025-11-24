@@ -1,0 +1,6 @@
+@VTTAPI_HostAddress = http://localhost:5125
+
+GET {{VTTAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
